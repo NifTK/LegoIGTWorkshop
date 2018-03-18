@@ -35,14 +35,64 @@ the EV3. If you do, make sure to mark the new file as executable.
 For the PC, download [Slicer](https://www.slicer.org/). This workshop has been 
 tested with [version 4.8.1](http://slicer.kitware.com/midas3/folder/4989)
 but it should work with similar versions. 
-Under `Edit->Application Settings` go to the `Modules` tab and add a path under
-`Additional Module Paths` which points to the folder named LegoWorkshop in this 
-repository. This will require a reboot of the program to take effect.
 
-To use the module, load the  
+![Warning about using Slicer for clinical use](Screenshots/01-ClinicalWarning.png)
+
+Open the Application Settings by clicking `Edit->Application Settings`:
+
+![Edit->Application Settings](Screenshots/02-AppSettings.png)
+
+Go to the `Modules` tab:
+
+![List of Module Paths](Screenshots/03-ModulesEmpty.png)
+
+Add a path under `Additional Module Paths` which points to the folder named 
+LegoWorkshop in this repository:
+
+![Choose Directory](Screenshots/04-ChooseDirectory.png)
+
+Now that directory will be in the list:
+
+![List of Module Paths](Screenshots/05-ModulesFull.png)
+
+This will require a reboot of the program to take effect:
+
+![Restart Required](Screenshots/06-RestartRequired.png)
+
+To use the module, load it from the Modules menu:
+
+![Choosing LEGO Module](Screenshots/07-SelectingLEGOModule.png)
+
+Make sure that under `LegoWorkshop - Configuration` 
+the server address matches the IP of your brick, or uses `ev3dev.local`:
+
+![Loaded Module](Screenshots/08-LoadedLEGOModule.png)
+
+Download the 
 [CT volume of the LEGO phantom](http://wiki.na-mic.org/Wiki/images/6/69/000003.SER.zip)
-and enable the LEGO module. Make sure that under `LegoWorkshop - Configuration` 
-the server address matches the IP of your brick, or uses `ev3dev.local`.
-Then add a Fiducial to the point you want to target 
-and then choose that namespace (`F`) and that position will be sent to the 
-robot.
+and extract it somewhere. Now open that data with `File->Add Data` and point to 
+the first file in the series:
+
+![File->Add Data](Screenshots/09-OpenFile.png)
+
+Show additional options:
+
+![Additional Options](Screenshots/10-ShowOptions.png)
+
+Uncheck the `Single File` box:
+
+![Not Single File](Screenshots/11-NotSingleFile.png)
+
+Click OK. Now you should see the CT scan of a LEGO phantom:
+
+![Not Single File](Screenshots/12-LEGOScanLoaded.png)
+
+Then add a Fiducial to the point you want to target by clicking on the icon with
+the red dot and blue arrow:
+
+![Select Feducial](Screenshots/13-SelectFeducial.png)
+
+Then click somewhere you want the robot to probe, and then choose the feducial 
+namespace (`F`) and that position will be sent to the robot:
+
+![Feducial List](Screenshots/14-FeducialList.png)
