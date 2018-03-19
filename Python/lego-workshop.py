@@ -2,6 +2,7 @@
 
 import socket
 import sys
+from ev3dev.ev3 import *
 
 def decode_packet(data_string,packet_name):
     data_array=[]
