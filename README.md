@@ -64,7 +64,10 @@ To use the module, load it from the Modules menu:
 ![Choosing LEGO Module](Screenshots/07-SelectingLEGOModule.png)
 
 Make sure that under `LegoWorkshop - Configuration` 
-the server address matches the IP of your brick, or uses `ev3dev.local`:
+the server address matches the address of your brick, (probably `ev3dev.local`).
+If `ev3dev.local` doesn't work, get the IP of the EV3 from the menu 
+`WirelessAndNetowrks->AllNetowrkConnections->[Wired or other]->IPv4`.
+If the module loaded correctly it should look something like the following:
 
 ![Loaded Module](Screenshots/08-LoadedLEGOModule.png)
 

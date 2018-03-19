@@ -87,7 +87,7 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
         #### Buttons Layout
         self.deetoButtonsHBL = qt.QHBoxLayout()
 #        self.deetoButtonsHBL.addWidget(self.deetoLE)
-        self.addressBox = qt.QLineEdit("192.168.0.5");
+        self.addressBox = qt.QLineEdit("ev3dev.local");
         self.portBox = qt.QLineEdit("3148");
         self.deetoButtonsHBL.addWidget(self.addressBox)
         self.deetoButtonsHBL.addWidget(self.portBox)
@@ -189,7 +189,10 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
                 self.sock.connect(address_port)
                 message='lego'+','+repr(P2[0])+','+repr(P2[1])+','+repr(P2[2])
                 self.sock.sendall(message)
-                self.commandFL.addRow(message, qt.QHBoxLayout())
+                horzGroupLayout = qt.QHBoxLayout()
+                horzGroupLayout.addWidget(qt.QLabel(message))
+                #horzGroupLayout.addWidget(self.createVTKModels)
+                self.commandFL.addRow("sent", horzGroupLayout)
                 
                 
                 
