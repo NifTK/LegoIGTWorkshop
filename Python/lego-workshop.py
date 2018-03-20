@@ -3,6 +3,13 @@
 import socket
 import sys
 from ev3dev.ev3 import *
+from time import sleep
+
+m1 = LargeMotor('outB');    assert m1.connected, "Connect a motor to B port"
+m2 = LargeMotor('outA');    assert m2.connected, "Connect a motor to A port"
+m3 = MediumMotor('outC');   assert m3.connected, "Connect a motor to C port"
+ir = InfraredSensor();      assert ir.connected, "Connect a infrared sensor to any port"
+ts = TouchSensor();         assert ts.connected, "Connect a touch sensor to any port"
 
 def decode_packet(data_string,packet_name):
     data_array=[]
@@ -37,7 +44,21 @@ while True:
     try:
         data = connection.recv(999).decode()
         print("<"+data+">")
-        print(decode_packet(data,'lego'))
+        packet=decode_packet(data,'lego')
+        print(packet)
+        if len(packet)>=3:
+            m1.run_to_abs_pos(position_sp=packet[1], speed_sp=100, stop_action="hold")
+            m2.run_to_abs_pos(position_sp=packet[2], speed_sp=100, stop_action="hold")
+            m2.wait_while('running',timeout=1500)   # Give the motor time to move
+            m1.wait_while('running',timeout=1500)   # Give the motor time to move
+            
+            # Now execute the poke
+            m3.run_direct(duty_cycle_sp=15)
+            sleep(2)   # Give the motor time to move
+            m3.run_direct(duty_cycle_sp=-15)
+            sleep(2)   # Give the motor time to move
+            m3.run_direct(duty_cycle_sp=0)
+            
 
     except:
         connection.close()

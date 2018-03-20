@@ -3,6 +3,7 @@
 from ev3dev.ev3 import *
 import math
 
+from time import sleep
 offset=33#mm
 height=130#mm
 
@@ -19,23 +20,39 @@ def fk(Dst,Azm,Elv):
 
 m1 = LargeMotor('outB');    assert m1.connected, "Connect a motor to B port"
 m2 = LargeMotor('outA');    assert m2.connected, "Connect a motor to A port"
+m3 = Motor('outC');   assert m3.connected, "Connect a motor to C port"
 ir = InfraredSensor();      assert ir.connected, "Connect a infrared sensor to any port"
 ts = TouchSensor();         assert ts.connected, "Connect a touch sensor to any port"
 
 m1.run_direct(duty_cycle_sp=0)
 m2.run_direct(duty_cycle_sp=0)
+m3.run_direct(duty_cycle_sp=0)
 
 # Put the infrared sensor into proximity mode.
 ir.mode = 'IR-PROX'
+
+if False:
+    m3.run_direct(duty_cycle_sp=0)
+    sleep(5)
+    m3.reset()
+m3.run_to_abs_pos(position_sp=0, speed_sp=500, stop_action="hold")
+m3.wait_while('running',timeout=5000)   # Give the motor time to move
+print('moved to 0',m3.position)
+m3.run_to_abs_pos(position_sp=360, speed_sp=500, stop_action="hold")
+m3.wait_while('running',timeout=5000)   # Give the motor time to move
+print('moved to 360',m3.position)
+m3.run_direct(duty_cycle_sp=0)
 while True:
     while not ts.value():    # Stop program by pressing touch sensor button
         # Infrared sensor in proximity mode will measure distance to the closest
         # object in front of it.
         ir_raw = ir.value()
-    Dst = ir.value() * 300.0/38.0 # mm
+        print(m3.position)
+    m3.run_direct(duty_cycle_sp=0)
+    Dst = m3.position
     Azm = m1.position
     Elv = m2.position
-    print(ir_raw,Azm,Elv,fk(Dst,Azm,Elv))
+    print(Dst,Azm,Elv,fk(Dst,Azm,Elv))
     Sound.beep()
 # 17=150mm
 # 38=300mm
@@ -56,8 +73,9 @@ while True:
 #  z= Dst*sin(Elv)+height
 #
 # Measurements of LEGO model relative to 
-#                    Azm,Elv,Dst
-# Front Left Corner: -22,-27,85+63
-# Front Right Corner: 40,-32,73+63
-# Back Right Corner:  23,-20,148+63
-# Back Left Corner:  -13,-20,155+63
+#      Name          Azm,Elv,Dst,       X_CT         ,    Y_CT     ,       Z_CT
+# Front Left Corner ,-22,-27,148, -24.857597007947618,125.337890625,-164.55509249983300
+# Front Right Corner, 40,-32,136, -21.765711614238967,123.986328125,-284.10799438990176
+# Back Right Corner , 23,-20,211,-108.338502638081820,126.013671875,-287.19987978361040
+# Back Left Corner  ,-13,-20,218,-111.430388031790530,127.365234375,-167.64697789354165
+
