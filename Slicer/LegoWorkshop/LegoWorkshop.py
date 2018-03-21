@@ -85,18 +85,11 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
             LEGO_Calibration_Points[i]=self.fk(float(self.calibrationTable.item(i,0).text()),float(self.calibrationTable.item(i,1).text()),float(self.calibrationTable.item(i,2).text()))
             for j in xrange(3):
                 Slicer_CT_Calibration_Points[i,j]=float(self.calibrationTable.item(i,3+j).text())
-
-        print("Calibration Points in LEGO Coordinates [mm]:")
-        print(LEGO_Calibration_Points)
-        print("")
-        print("Slicer_CT_Calibration_Points [mm]:")
-        print(Slicer_CT_Calibration_Points)
-        print("")
         
         # Find the transformation that matches them
         self.ret_R, self.ret_t = self.rigid_transform_3D(Slicer_CT_Calibration_Points, LEGO_Calibration_Points)
 
-        Check_Calibration=True
+        Check_Calibration=False
         # If you want to make sure everything is shipshape, change Check_Calibration to true, and see if all the maths do what you expect
         if Check_Calibration:
 

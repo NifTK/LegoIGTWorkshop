@@ -1,6 +1,9 @@
 LEGO Mindstorms IGT Workshop
 ============================
 
+Setup
+----------------------------
+
 This workshop is designed to work with the  
 [LEGO Mindstorms EV3 kit](https://shop.lego.com/en-GB/LEGO-MINDSTORMS-EV3-31313)
 and a standard 
@@ -35,6 +38,9 @@ the EV3. If you do, make sure to mark the new file as executable.
 For the PC, download [Slicer](https://www.slicer.org/). This workshop has been 
 tested with [version 4.8.1](http://slicer.kitware.com/midas3/folder/4989)
 but it should work with similar versions. 
+
+Basic Tutorial: Image Guided Therapy
+------------------------------------
 
 ![Warning about using Slicer for clinical use](Screenshots/01-ClinicalWarning.png)
 
@@ -96,6 +102,64 @@ the red dot and blue arrow:
 ![Select Feducial](Screenshots/13-SelectFeducial.png)
 
 Then click somewhere you want the robot to probe, and then choose the feducial 
-namespace (`F`) and that position will be sent to the robot:
+namespace (`F`) and that position will displayed on the list:
 
 ![Feducial List](Screenshots/14-FeducialList.png)
+
+Then choose which point(s) you want the robot to 'probe' by ticking the box next
+to them. When you are ready (and assuming you are running `lego-workshop.py`), 
+press the `Go` button:
+
+![Send Go Command](Screenshots/15-SendCommand.png)
+
+This should make the robot move!
+
+Advanced Tutorial: Manual Registration
+--------------------------------------
+
+A calibration of the robot to the phantom was already programmed into the Slicer 
+module, but if you want to move the robot to somewhere else around the phantom,
+while still having it within range of the injector, you can perform a manual 
+registration. This is done by selecting at least 3 feducials and getting 
+measurements of how those relate to the robot in the real world. Once you have
+your points ticked, press the `Replace Calibration Points` button:
+
+![Send Go Command](Screenshots/21-ReplaceCalibration.png)
+
+This will bring the points up to the table, but you will notice that the joint 
+values are empty. To fill those we will use another python script that outputs 
+the joint values without running the motors. It is called `lego-debug.py` and 
+should be run through ssh so that you can see the output. Move the robot to 
+point towards the calibration points you chose (keeping in mind that they need 
+to correspond 1:1), and fill in the values. 
+
+Note that the inject motor's encoder is spotty, and sometimes doesn't work so 
+it is currently not implemented (`lego-debug.py` will either show 0 or a huge number)
+so you have to measure the distance from the orange circle of the upright large motor 
+to your calibration point in millimeters, and that value will be `Dst`.
+
+```
+robot@ev3dev:~/lego-igt-workshop$ Python/lego-debug.py 
+Press the touch sensor to read the motor positions
+WARNING! The inject motor does not seem to work, you will have to measure that manually
+
+Dst Azm Elv
+-1467 38 44
+-1467 38 44
+```
+
+Enter those numbers into the table:
+
+![Enter Joint Values](Screenshots/22-EnterCalibration.png)
+
+The press the `Rerun Calibration` button to get a new calibration:
+
+![Rerun Calibration](Screenshots/23-RerunCalibration.png)
+
+Now you can test out your new calibration!
+
+Note that if you think something is wrong you can set `Check_Calibration=True` in
+`LegoWorkshop.py` and if you run Slicer from a terminal you can get the details of
+the linear algebra, including the RMSE which (if you used more than 3 points) lets
+you know how well the calibration points agree on a registration.
+
