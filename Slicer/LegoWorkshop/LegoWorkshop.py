@@ -6,6 +6,7 @@ import struct
 import os
 from __main__ import vtk, qt, ctk, slicer
 from slicer.ScriptedLoadableModule import *
+from numpy import *
 import math
 
 import socket
@@ -60,6 +61,143 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
         self.server_address = '1.1.1.1'
         self.server_port = 3148
         
+        #Warning: These variables were measured with a caliper and aren't guaranteed to be accurate
+        self.offset=33#mm
+        self.height=130#mm
+        
+        self.calibrate()
+        
+    def calibrate(self):
+        # Measurements of the smae points in the LEGO CT scan and on the LEGO Robot
+        # For now, these are just the four corners of the top of the 
+        #      Name          Azm,Elv,Dst,       X_CT         ,    Y_CT     ,       Z_CT
+        # Front Left Corner ,-22,-27,148, -24.857597007947618,125.337890625,-164.55509249983300
+        # Front Right Corner, 40,-32,136, -21.765711614238967,123.986328125,-284.10799438990176
+        # Back Right Corner , 23,-20,211,-108.338502638081820,126.013671875,-287.19987978361040
+        # Back Left Corner  ,-13,-20,218,-111.430388031790530,127.365234375,-167.64697789354165
+
+        Slicer_CT_Calibration_Points=matrix('-24.857597007947618,125.337890625,-164.55509249983300;-21.765711614238967,123.986328125,-284.10799438990176;-108.338502638081820,126.013671875,-287.19987978361040;-111.430388031790530,127.365234375,-167.64697789354165')
+
+        LEGO_Calibration_Points=Slicer_CT_Calibration_Points.copy()#Copy over to make sure we have a matrix of the same size
+        # Do forward kinematics for each calibration point, getting x,y,z for each point in mm
+        LEGO_Calibration_Points[0]=self.fk(148,-22,-27)
+        LEGO_Calibration_Points[1]=self.fk(136, 40,-32)
+        LEGO_Calibration_Points[2]=self.fk(211, 23,-20)
+        LEGO_Calibration_Points[3]=self.fk(218,-13,-20)
+
+        # Find the transformation that matches them
+        self.ret_R, self.ret_t = self.rigid_transform_3D(Slicer_CT_Calibration_Points, LEGO_Calibration_Points)
+
+        Check_Calibration=False
+        # If you want to make sure everything is shipshape, change Check_Calibration to true, and see if all the maths do what you expect
+        if Check_Calibration:
+
+            print("Calibration Points in LEGO Coordinates [mm]:")
+            print(LEGO_Calibration_Points)
+            print("")
+
+            # First we do a bulk transform of all the calibration from the points into LEGO coordinates
+            # Note that since we are not using homogeneous coordinates we have to tile the translation and tack it on
+            n=Slicer_CT_Calibration_Points.shape[0]
+            Projected_Slicer_CT_Calibration_Points = (self.ret_R*Slicer_CT_Calibration_Points.T) + tile(self.ret_t, (1, n))
+            Projected_Slicer_CT_Calibration_Points = Projected_Slicer_CT_Calibration_Points.T
+
+            print("Projected Slicer CT Calibration Points into LEGO Coordinates [mm]:")
+            print(Projected_Slicer_CT_Calibration_Points)
+            print("")
+
+            C=Slicer_CT_Calibration_Points.copy()#Copy over to make sure we have a matrix of the same size (note that num_joints==num_dof)
+            C[0]=self.ik(Projected_Slicer_CT_Calibration_Points[0,0],Projected_Slicer_CT_Calibration_Points[0,1],Projected_Slicer_CT_Calibration_Points[0,2])
+            C[1]=self.ik(Projected_Slicer_CT_Calibration_Points[1,0],Projected_Slicer_CT_Calibration_Points[1,1],Projected_Slicer_CT_Calibration_Points[1,2])
+            C[2]=self.ik(Projected_Slicer_CT_Calibration_Points[2,0],Projected_Slicer_CT_Calibration_Points[2,1],Projected_Slicer_CT_Calibration_Points[2,2])
+            C[3]=self.ik(Projected_Slicer_CT_Calibration_Points[3,0],Projected_Slicer_CT_Calibration_Points[3,1],Projected_Slicer_CT_Calibration_Points[3,2])
+
+            print("Inverse Kinematics (Batch Transform)")
+            print(C)
+            print("")
+
+            D=Slicer_CT_Calibration_Points.copy()#Copy over to make sure we have a matrix of the same size (note that num_joints==num_dof)
+            D[0]=self.ik_trans(Slicer_CT_Calibration_Points[0,0],Slicer_CT_Calibration_Points[0,1],Slicer_CT_Calibration_Points[0,2])
+            D[1]=self.ik_trans(Slicer_CT_Calibration_Points[1,0],Slicer_CT_Calibration_Points[1,1],Slicer_CT_Calibration_Points[1,2])
+            D[2]=self.ik_trans(Slicer_CT_Calibration_Points[2,0],Slicer_CT_Calibration_Points[2,1],Slicer_CT_Calibration_Points[2,2])
+            D[3]=self.ik_trans(Slicer_CT_Calibration_Points[3,0],Slicer_CT_Calibration_Points[3,1],Slicer_CT_Calibration_Points[3,2])
+            print("Inverse Kinematics (Individual Transform)")
+            print(D)
+            print("")
+
+            # Find the error
+            err = Projected_Slicer_CT_Calibration_Points - LEGO_Calibration_Points
+
+            err = multiply(err, err)
+            err = sum(err)
+            rmse = math.sqrt(err/n);
+
+            print("RMSE:", rmse)
+
+    # Forward kinematics: For given joint angles figure out what X,Y,Z we have
+    def fk(self,Dst,Azm,Elv):
+        projected_length=Dst*math.cos(math.radians(Elv))
+        effective_length=math.sqrt(projected_length*projected_length+self.offset*self.offset)
+        azimuth_correction=math.atan2(self.offset,projected_length)
+        azimuth_efective=math.radians(Azm)-azimuth_correction
+        x=-effective_length*math.cos(azimuth_efective)
+        y= effective_length*math.sin(azimuth_efective)
+        z= Dst*math.sin(math.radians(Elv))+self.height
+        return [x,y,z]
+
+    # Inverse kinematics: For a given X,Y,Z figure out what joint angles we want
+    def ik(self,x,y,z):
+        azimuth_efective=math.atan2(y,-x)
+        effective_length=math.sqrt(x*x+y*y)
+        projected_length=math.sqrt(effective_length*effective_length-self.offset*self.offset)
+        Dst=math.sqrt(projected_length*projected_length+(z-self.height)*(z-self.height))
+        Elv_Rad=math.asin((z-self.height)/Dst)
+        azimuth_correction=math.atan2(self.offset,projected_length)
+        Azm_Rad=azimuth_efective+azimuth_correction
+        return [Dst,math.degrees(Azm_Rad),math.degrees(Elv_Rad)]
+
+    # Inverse kinematics with Transform: For a given X,Y,Z and rigid transform figure out what joint angles we want
+    # This is a convenience function for when we get points sporatically. 
+    # If you are dealing with a large batch of points, it's almost certainly faster to transform them all at once.
+    def ik_trans(self,x,y,z):
+        A=matrix([x, y, z])
+        P2 = self.ret_R*A.T + self.ret_t
+        return self.ik(P2[0],P2[1],P2[2])
+
+    # Input: expects Nx3 matrix of points
+    # Returns R,t
+    # R = 3x3 rotation matrix
+    # t = 3x1 column vector
+    def rigid_transform_3D(self,A, B):
+        assert len(A) == len(B)
+
+        N = A.shape[0]; # total points
+
+        centroid_A = mean(A, axis=0)
+        centroid_B = mean(B, axis=0)
+        
+        # centre the points
+        AA = A - tile(centroid_A, (N, 1))
+        BB = B - tile(centroid_B, (N, 1))
+
+        # dot is matrix multiplication for array
+        H = transpose(AA) * BB
+
+        U, S, Vt = linalg.svd(H)
+
+        R = Vt.T * U.T
+
+        # special reflection case
+        if linalg.det(R) < 0:
+           print("Reflection detected")
+           Vt[2,:] *= -1
+           R = Vt.T * U.T
+
+        t = -R*centroid_A.T + centroid_B.T
+
+        return R, t
+
+
 
     #######################################################################################
     ### configurationSetup
@@ -76,14 +214,6 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
         #### Collapsible button layout
         self.setupFL = qt.QFormLayout(self.setupCB)
 
-        #### Tool Box for changing deeto Executable
-        self.deetoTB = qt.QToolButton()
-        self.deetoTB.setText("Connect")
-        self.deetoTB.toolTip = "Change Server Address"
-        self.deetoTB.enabled = True
-        self.deetoTB.connect('clicked(bool)', self.ondeetoTB)
-
-
         #### Buttons Layout
         self.deetoButtonsHBL = qt.QHBoxLayout()
 #        self.deetoButtonsHBL.addWidget(self.deetoLE)
@@ -91,7 +221,6 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
         self.portBox = qt.QLineEdit("3148");
         self.deetoButtonsHBL.addWidget(self.addressBox)
         self.deetoButtonsHBL.addWidget(self.portBox)
-        self.deetoButtonsHBL.addWidget(self.deetoTB)
 
         #### Aggiungo il bottone al layout
         self.setupFL.addRow("Server Location: ", self.deetoButtonsHBL)
@@ -128,6 +257,25 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
         self.commandFL.addRow("Fiducial List", self.fiducialCBox)
         #### Connect the fiducial list to the
         self.fiducialCBox.connect('currentNodeChanged(bool)', self.onfiducialCBox)
+        
+        
+        self.buttonsHBL = qt.QHBoxLayout()
+        #### Tool Box for changing deeto Executable
+        self.deetoTB = qt.QToolButton()
+        self.deetoTB.setText("Go")
+        self.deetoTB.toolTip = "Send Command to LEGO Robot"
+        self.deetoTB.enabled = True
+        self.deetoTB.connect('clicked(bool)', self.ondeetoTB)
+        
+        self.updateListBtn = qt.QToolButton()
+        self.updateListBtn.setText("Update")
+        self.updateListBtn.toolTip = "Update Feducial List"
+        self.updateListBtn.enabled = True
+        self.updateListBtn.connect('clicked(bool)', self.onfiducialCBox)
+        
+        self.buttonsHBL.addWidget(self.deetoTB)
+        self.buttonsHBL.addWidget(self.updateListBtn)
+        self.commandFL.addRow("Send Command", self.buttonsHBL)
 
         #### Configure command - Section
         ### Read from files the list of the modules
@@ -177,6 +325,12 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
         operationLog = ""  # error/warning Log string
         self.fids = self.fiducialCBox.currentNode()
 
+        self.FeducailsList = qt.QVBoxLayout()
+        self.commandFL.addRow("Feducials", self.FeducailsList)
+        self.horzGroupLayout=[]
+        self.messages=[]
+        self.checkboxes=[]
+        
         # here we fill list using fiducials
         for i in xrange(self.fids.GetNumberOfFiducials()):
             if self.fids.GetNthFiducialSelected(i) == True:
@@ -184,15 +338,17 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
                 P2 = [0.0, 0.0, 0.0]
                 self.fids.GetNthFiducialPosition(i, P2)
                 print(P2)
-                self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                address_port = (self.addressBox.text, int(self.portBox.text))
-                self.sock.connect(address_port)
-                message='lego'+','+repr(P2[0])+','+repr(P2[1])+','+repr(P2[2])
-                self.sock.sendall(message)
-                horzGroupLayout = qt.QHBoxLayout()
-                horzGroupLayout.addWidget(qt.QLabel(message))
+                J2 = self.ik_trans(P2[0],P2[1],P2[2])
+                print(J2)
+                message='lego'+','+repr(J2[0])+','+repr(J2[1])+','+repr(J2[2])
+                
+                self.messages.append(message)
+                self.horzGroupLayout.append(qt.QHBoxLayout())
+                self.checkboxes.append(qt.QCheckBox(self.fids.GetNthFiducialLabel(i)))
+                self.horzGroupLayout[-1].addWidget(self.checkboxes[-1])
+                self.horzGroupLayout[-1].addWidget(qt.QLabel(message))
                 #horzGroupLayout.addWidget(self.createVTKModels)
-                self.commandFL.addRow("sent", horzGroupLayout)
+                self.FeducailsList.addLayout(self.horzGroupLayout[-1])
                 
                 
                 
@@ -215,5 +371,14 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
     #######################################################################################
     def ondeetoTB(self):
         """ on LegoWorkshop Tool Box Button Logic """
+        qreg = qt.QRegExp(r'.*')
+        for i in range(0,len(self.checkboxes)):
+            if self.checkboxes[i].isChecked():
+                message=self.messages[i]
+                self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                address_port = (self.addressBox.text, int(self.portBox.text))
+                self.sock.connect(address_port)
+                self.sock.sendall(message)
+        
 
 
