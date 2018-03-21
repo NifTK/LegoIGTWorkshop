@@ -76,19 +76,27 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
         # Back Right Corner , 23,-20,211,-108.338502638081820,126.013671875,-287.19987978361040
         # Back Left Corner  ,-13,-20,218,-111.430388031790530,127.365234375,-167.64697789354165
 
-        Slicer_CT_Calibration_Points=matrix('-24.857597007947618,125.337890625,-164.55509249983300;-21.765711614238967,123.986328125,-284.10799438990176;-108.338502638081820,126.013671875,-287.19987978361040;-111.430388031790530,127.365234375,-167.64697789354165')
-
+        X=zeros((self.calibrationTable.rowCount,3))
+        Slicer_CT_Calibration_Points=matrix(X)
         LEGO_Calibration_Points=Slicer_CT_Calibration_Points.copy()#Copy over to make sure we have a matrix of the same size
+        
         # Do forward kinematics for each calibration point, getting x,y,z for each point in mm
-        LEGO_Calibration_Points[0]=self.fk(148,-22,-27)
-        LEGO_Calibration_Points[1]=self.fk(136, 40,-32)
-        LEGO_Calibration_Points[2]=self.fk(211, 23,-20)
-        LEGO_Calibration_Points[3]=self.fk(218,-13,-20)
+        for i in xrange(self.calibrationTable.rowCount):
+            LEGO_Calibration_Points[i]=self.fk(float(self.calibrationTable.item(i,0).text()),float(self.calibrationTable.item(i,1).text()),float(self.calibrationTable.item(i,2).text()))
+            for j in xrange(3):
+                Slicer_CT_Calibration_Points[i,j]=float(self.calibrationTable.item(i,3+j).text())
 
+        print("Calibration Points in LEGO Coordinates [mm]:")
+        print(LEGO_Calibration_Points)
+        print("")
+        print("Slicer_CT_Calibration_Points [mm]:")
+        print(Slicer_CT_Calibration_Points)
+        print("")
+        
         # Find the transformation that matches them
         self.ret_R, self.ret_t = self.rigid_transform_3D(Slicer_CT_Calibration_Points, LEGO_Calibration_Points)
 
-        Check_Calibration=False
+        Check_Calibration=True
         # If you want to make sure everything is shipshape, change Check_Calibration to true, and see if all the maths do what you expect
         if Check_Calibration:
 
@@ -224,6 +232,26 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
 
         #### Aggiungo il bottone al layout
         self.setupFL.addRow("Server Location: ", self.deetoButtonsHBL)
+        
+        Slicer_CT_Calibration_Points=matrix('-24.857597007947618,125.337890625,-164.55509249983300;-21.765711614238967,123.986328125,-284.10799438990176;-108.338502638081820,126.013671875,-287.19987978361040;-111.430388031790530,127.365234375,-167.64697789354165')
+        LEGO_Calibration_Joints=matrix([[148,-22,-27],[136, 40,-32],[211, 23,-20],[218,-13,-20]])
+        self.calibrationTable=qt.QTableWidget(4, 6)
+        self.calibrationTable.setHorizontalHeaderLabels(['Dst', 'Azm', 'Elv', 'X', 'Y', 'Z'])
+        for row in range(0,4):
+            for col in range(0,3):
+                item1 = qt.QTableWidgetItem("%s"%Slicer_CT_Calibration_Points[row,col])
+                self.calibrationTable.setItem(row, col+3, item1)
+                item2 = qt.QTableWidgetItem("%s"%LEGO_Calibration_Joints[row,col])
+                self.calibrationTable.setItem(row, col, item2)
+        self.setupFL.addRow("Calibration: ", self.calibrationTable)
+        
+        
+        self.CalibrateBtn = qt.QToolButton()
+        self.CalibrateBtn.setText("Rerun Calibration")
+        self.CalibrateBtn.toolTip = "Rerun Calibration with Points from Table"
+        self.CalibrateBtn.enabled = True
+        self.CalibrateBtn.connect('clicked(bool)', self.calibrate)
+        self.setupFL.addRow("Calibrate: ", self.CalibrateBtn)
 
         #### Button to change the deeto executable location
         #### It is called in ondeetoTB, when deetoTB is selected
@@ -273,8 +301,15 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
         self.updateListBtn.enabled = True
         self.updateListBtn.connect('clicked(bool)', self.onfiducialCBox)
         
+        self.updateCalibrationPointsBtn = qt.QToolButton()
+        self.updateCalibrationPointsBtn.setText("Replace Calibration Points")
+        self.updateCalibrationPointsBtn.toolTip = "Replace Calibration Points with those checked"
+        self.updateCalibrationPointsBtn.enabled = True
+        self.updateCalibrationPointsBtn.connect('clicked(bool)', self.onupdateCalibrationPointsBtn)
+        
         self.buttonsHBL.addWidget(self.deetoTB)
         self.buttonsHBL.addWidget(self.updateListBtn)
+        self.buttonsHBL.addWidget(self.updateCalibrationPointsBtn)
         self.commandFL.addRow("Send Command", self.buttonsHBL)
 
         #### Configure command - Section
@@ -297,6 +332,8 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
             self.captionBL.addWidget(a)
 
         self.commandFL.addRow("", self.captionGB)
+        self.FeducailsList = qt.QVBoxLayout()
+        self.commandFL.addRow("Feducials", self.FeducailsList)
 
     #######################################################################################
     # onfiducialCBox   #
@@ -324,12 +361,11 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
         # (2.a) Read the fiducial list
         operationLog = ""  # error/warning Log string
         self.fids = self.fiducialCBox.currentNode()
-
-        self.FeducailsList = qt.QVBoxLayout()
-        self.commandFL.addRow("Feducials", self.FeducailsList)
+        
         self.horzGroupLayout=[]
         self.messages=[]
         self.checkboxes=[]
+        self.points=[]
         
         # here we fill list using fiducials
         for i in xrange(self.fids.GetNumberOfFiducials()):
@@ -338,6 +374,7 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
                 P2 = [0.0, 0.0, 0.0]
                 self.fids.GetNthFiducialPosition(i, P2)
                 print(P2)
+                self.points.append(P2)
                 J2 = self.ik_trans(P2[0],P2[1],P2[2])
                 print(J2)
                 message='lego'+','+repr(J2[0])+','+repr(J2[1])+','+repr(J2[2])
@@ -349,9 +386,6 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
                 self.horzGroupLayout[-1].addWidget(qt.QLabel(message))
                 #horzGroupLayout.addWidget(self.createVTKModels)
                 self.FeducailsList.addLayout(self.horzGroupLayout[-1])
-                
-                
-                
         
 
 #        horzGroupLayout = qt.QHBoxLayout()
@@ -371,7 +405,6 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
     #######################################################################################
     def ondeetoTB(self):
         """ on LegoWorkshop Tool Box Button Logic """
-        qreg = qt.QRegExp(r'.*')
         for i in range(0,len(self.checkboxes)):
             if self.checkboxes[i].isChecked():
                 message=self.messages[i]
@@ -379,6 +412,18 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
                 address_port = (self.addressBox.text, int(self.portBox.text))
                 self.sock.connect(address_port)
                 self.sock.sendall(message)
-        
+    
+    def onupdateCalibrationPointsBtn(self):
+        """ on LegoWorkshop Tool Box Button Logic """
+        rows = 0
+        self.calibrationTable.setRowCount(rows)
+        for i in range(0,len(self.checkboxes)):
+            if self.checkboxes[i].isChecked():
+                rows=rows+1
+                self.calibrationTable.setRowCount(rows)
+                for col in range(0,3):
+                    item1 = qt.QTableWidgetItem("%s"%self.points[i][col])
+                    self.calibrationTable.setItem(rows-1, col+3, item1)
+
 
 
