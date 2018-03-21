@@ -2,28 +2,21 @@
 
 from ev3dev.ev3 import *
 import math
-
 from time import sleep
-offset=33#mm
-height=130#mm
-
-def fk(Dst,Azm,Elv):
-    projected_length=Dst*math.cos(math.radians(Elv))
-    effective_length=math.sqrt(projected_length*projected_length+offset*offset)
-    azimuth_correction=math.atan2(offset,projected_length)
-    azimuth_efective=math.radians(Azm)-azimuth_correction
-    x=-effective_length*math.cos(azimuth_efective)
-    y= effective_length*math.sin(azimuth_efective)
-    z= Dst*math.sin(math.radians(Elv))+height
-    return [x,y,z]
-    
 
 m1 = LargeMotor('outB');    assert m1.connected, "Connect a motor to B port"
 m2 = LargeMotor('outA');    assert m2.connected, "Connect a motor to A port"
-m3 = Motor('outC');   assert m3.connected, "Connect a motor to C port"
+m3 = MediumMotor('outC');   assert m3.connected, "Connect a motor to C port"
 ir = InfraredSensor();      assert ir.connected, "Connect a infrared sensor to any port"
 ts = TouchSensor();         assert ts.connected, "Connect a touch sensor to any port"
 
+# Move home first
+m1.run_to_abs_pos(position_sp=0, speed_sp=100, stop_action="hold")
+m2.run_to_abs_pos(position_sp=0, speed_sp=100, stop_action="hold")
+m3.run_direct(duty_cycle_sp=-30)
+sleep(4)
+m2.wait_while('running',timeout=1500)   # Give the motor time to move
+m1.wait_while('running',timeout=1500)   # Give the motor time to move
 m1.run_direct(duty_cycle_sp=0)
 m2.run_direct(duty_cycle_sp=0)
 m3.run_direct(duty_cycle_sp=0)
@@ -31,29 +24,21 @@ m3.run_direct(duty_cycle_sp=0)
 # Put the infrared sensor into proximity mode.
 ir.mode = 'IR-PROX'
 
-if False:
-    m3.run_direct(duty_cycle_sp=0)
-    sleep(5)
-    m3.reset()
-m3.run_to_abs_pos(position_sp=0, speed_sp=500, stop_action="hold")
-m3.wait_while('running',timeout=5000)   # Give the motor time to move
-print('moved to 0',m3.position)
-m3.run_to_abs_pos(position_sp=360, speed_sp=500, stop_action="hold")
-m3.wait_while('running',timeout=5000)   # Give the motor time to move
-print('moved to 360',m3.position)
-m3.run_direct(duty_cycle_sp=0)
+print('Press the touch sensor to read the motor positions')
+print('WARNING! The inject motor does not seem to work, you will have to measure that manually')
+print('')
+print('Dst','Azm','Elv')
 while True:
     while not ts.value():    # Stop program by pressing touch sensor button
         # Infrared sensor in proximity mode will measure distance to the closest
         # object in front of it.
         ir_raw = ir.value()
-        print(m3.position)
-    m3.run_direct(duty_cycle_sp=0)
     Dst = m3.position
     Azm = m1.position
     Elv = m2.position
-    print(Dst,Azm,Elv,fk(Dst,Azm,Elv))
+    print(Dst,Azm,Elv)
     Sound.beep()
+
 # 17=150mm
 # 38=300mm
 # Robot Params

@@ -21,7 +21,7 @@ m2 = LargeMotor('outA');    assert m2.connected, "Connect a motor to A port"
 ir.mode = 'IR-PROX'
 
 # PPM header
-fudge  = 10 # Padd pixes to the width, because we are calculating x from motor position
+fudge  = 10 # Padd pixes to the width, because we are calculating x from motor positionZZZ
 width  = 90
 height = 45
 maxval = 255

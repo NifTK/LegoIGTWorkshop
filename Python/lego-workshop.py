@@ -53,10 +53,10 @@ while True:
             m1.wait_while('running',timeout=1500)   # Give the motor time to move
             
             # Now execute the poke
-            m3.run_direct(duty_cycle_sp=15)
-            sleep(2)   # Give the motor time to move
-            m3.run_direct(duty_cycle_sp=-15)
-            sleep(2)   # Give the motor time to move
+            m3.run_direct(duty_cycle_sp=30)
+            sleep(4)   # Give the motor time to move
+            m3.run_direct(duty_cycle_sp=-30)
+            sleep(4)   # Give the motor time to move
             m3.run_direct(duty_cycle_sp=0)
             
 
