@@ -18,7 +18,16 @@ The phantom hasn't changed from the previous workshop, so you can use the same
 [inststructions](https://na-mic.org/w/images/0/0d/LEGOIGTAndMedicalRoboticsTutorial_PhantomAssemblyInstructions.pdf)
 to construct it. Note that the newer 
 [box of lego bricks](https://shop.lego.com/en-GB/LEGO-Large-Creative-Brick-Box-10698)
-does not have the same bricks as the old one, so substitutions have to be made.
+does not have the same bricks as the old one, so substitutions have to be made, 
+and since the automatic registration has not yet been implemented,
+the towers are optional.
+
+Construct the robot according to the instructions in this repo at 
+[Instructions/RobotAssemblyInstructions.pdf](Instructions/RobotAssemblyInstructions.pdf).
+Additionaly connect the robot to the phantom, and wire 
+the motors according the instructions at 
+[Instructions/MiscAssemblyInstructions.pdf](Instructions/MiscAssemblyInstructions.pdf).
+Attach a touch sensor and an infrared sensor to any ports.
 
 We are using the 3rd party [ev3dev](http://www.ev3dev.org/) operating system 
 to program the EV3 brick. If you are using a kit that has already been used for 
@@ -114,7 +123,7 @@ press the `Go` button:
 
 This should make the robot move!
 
-Advanced Tutorial: Manual Registration
+Moderate Tutorial: Manual Registration
 --------------------------------------
 
 A calibration of the robot to the phantom was already programmed into the Slicer 
@@ -163,3 +172,11 @@ Note that if you think something is wrong you can set `Check_Calibration=True` i
 the linear algebra, including the RMSE which (if you used more than 3 points) lets
 you know how well the calibration points agree on a registration.
 
+Advanced Tutorial: Automatic Registration
+-----------------------------------------
+
+The robot can be equiped with either an ultrasonic or infrared 
+range sensor, which can be used to sense the phantom and perform 
+a fully automated registration (similar to how registration is 
+done in the OR). However, this has not been implemented in the 
+code, so it is up to you to take on this challenge. Good luck!

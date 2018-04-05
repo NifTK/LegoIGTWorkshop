@@ -312,7 +312,7 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
         #    self.models = json.load(data_file)
 
         #### Create the caption table for the configuration
-        self.tableCaption = ["Name", "Position", "", ""]
+        self.tableCaption = ["Name", "Message", "", ""]
         self.tableHsize = [80, 180, 50, 50]
         self.captionGB = qt.QGroupBox(self.commandCB)
         self.captionBL = qt.QHBoxLayout(self.captionGB)
@@ -327,6 +327,10 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
         self.commandFL.addRow("", self.captionGB)
         self.FeducailsList = qt.QVBoxLayout()
         self.commandFL.addRow("Feducials", self.FeducailsList)
+        
+        self.horzGroupLayout=[]
+        self.checkboxes=[]
+        self.labels=[]
 
     #######################################################################################
     # onfiducialCBox   #
@@ -355,9 +359,13 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
         operationLog = ""  # error/warning Log string
         self.fids = self.fiducialCBox.currentNode()
         
-        self.horzGroupLayout=[]
+        for i in range(0,len(self.checkboxes)):
+            self.checkboxes[i].setChecked(False)
+            self.checkboxes[i].setEnabled(False)
+            self.checkboxes[i].setText('')
+            self.labels[i].setText('')
+            
         self.messages=[]
-        self.checkboxes=[]
         self.points=[]
         
         # here we fill list using fiducials
@@ -366,19 +374,25 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
                 # Set up a 3DOF point
                 P2 = [0.0, 0.0, 0.0]
                 self.fids.GetNthFiducialPosition(i, P2)
-                print(P2)
+                #print(P2)
                 self.points.append(P2)
                 J2 = self.ik_trans(P2[0],P2[1],P2[2])
-                print(J2)
+                #print(J2)
                 message='lego'+','+repr(J2[0])+','+repr(J2[1])+','+repr(J2[2])
                 
                 self.messages.append(message)
-                self.horzGroupLayout.append(qt.QHBoxLayout())
-                self.checkboxes.append(qt.QCheckBox(self.fids.GetNthFiducialLabel(i)))
-                self.horzGroupLayout[-1].addWidget(self.checkboxes[-1])
-                self.horzGroupLayout[-1].addWidget(qt.QLabel(message))
+                if len(self.labels)>i:
+                    self.labels[i].setText(message)
+                    self.checkboxes[i].setEnabled(True)
+                    self.checkboxes[i].setText(self.fids.GetNthFiducialLabel(i))
+                else:
+                    self.horzGroupLayout.append(qt.QHBoxLayout())
+                    self.checkboxes.append(qt.QCheckBox(self.fids.GetNthFiducialLabel(i)))
+                    self.labels.append(qt.QLabel(message))
+                self.horzGroupLayout[i].addWidget(self.checkboxes[i])
+                self.horzGroupLayout[i].addWidget(self.labels[i])
                 #horzGroupLayout.addWidget(self.createVTKModels)
-                self.FeducailsList.addLayout(self.horzGroupLayout[-1])
+                self.FeducailsList.addLayout(self.horzGroupLayout[i])
         
 
 #        horzGroupLayout = qt.QHBoxLayout()
@@ -398,7 +412,7 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
     #######################################################################################
     def ondeetoTB(self):
         """ on LegoWorkshop Tool Box Button Logic """
-        for i in range(0,len(self.checkboxes)):
+        for i in range(0,len(self.messages)):
             if self.checkboxes[i].isChecked():
                 message=self.messages[i]
                 self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -410,7 +424,7 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
         """ on LegoWorkshop Tool Box Button Logic """
         rows = 0
         self.calibrationTable.setRowCount(rows)
-        for i in range(0,len(self.checkboxes)):
+        for i in range(0,len(self.points)):
             if self.checkboxes[i].isChecked():
                 rows=rows+1
                 self.calibrationTable.setRowCount(rows)
