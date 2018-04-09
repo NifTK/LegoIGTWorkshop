@@ -15,7 +15,7 @@ originally developed by the National Alliance for Medical Imaging Computing
 which used the previous generation LEGO Mindstorms.
 
 The phantom hasn't changed from the previous workshop, so you can use the same 
-[inststructions](https://na-mic.org/w/images/0/0d/LEGOIGTAndMedicalRoboticsTutorial_PhantomAssemblyInstructions.pdf)
+[instructions](https://na-mic.org/w/images/0/0d/LEGOIGTAndMedicalRoboticsTutorial_PhantomAssemblyInstructions.pdf)
 to construct it. Note that the newer 
 [box of lego bricks](https://shop.lego.com/en-GB/LEGO-Large-Creative-Brick-Box-10698)
 does not have the same bricks as the old one, so substitutions have to be made, 
@@ -24,7 +24,7 @@ the towers are optional.
 
 Construct the robot according to the instructions in this repo at 
 [Instructions/RobotAssemblyInstructions.pdf](Instructions/RobotAssemblyInstructions.pdf).
-Additionaly connect the robot to the phantom, and wire 
+Additionally connect the robot to the phantom, and wire 
 the motors according the instructions at 
 [Instructions/MiscAssemblyInstructions.pdf](Instructions/MiscAssemblyInstructions.pdf).
 Attach a touch sensor and an infrared sensor to any ports.
@@ -81,7 +81,7 @@ To use the module, load it from the Modules menu:
 Make sure that under `LegoWorkshop - Configuration` 
 the server address matches the address of your brick, (probably `ev3dev.local`).
 If `ev3dev.local` doesn't work, get the IP of the EV3 from the menu 
-`WirelessAndNetowrks->AllNetowrkConnections->[Wired or other]->IPv4`.
+`WirelessAndNetworks->AllNetworkConnections->[Wired or other]->IPv4`.
 If the module loaded correctly it should look something like the following:
 
 ![Loaded Module](Screenshots/08-LoadedLEGOModule.png)
@@ -175,7 +175,7 @@ you know how well the calibration points agree on a registration.
 Advanced Tutorial: Automatic Registration
 -----------------------------------------
 
-The robot can be equiped with either an ultrasonic or infrared 
+The robot can be equipped with either an ultrasonic or infrared 
 range sensor, which can be used to sense the phantom and perform 
 a fully automated registration (similar to how registration is 
 done in the OR). However, this has not been implemented in the 
