@@ -89,13 +89,13 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
         # Find the transformation that matches them
         self.ret_R, self.ret_t = self.rigid_transform_3D(Slicer_CT_Calibration_Points, LEGO_Calibration_Points)
 
-        Check_Calibration=False
+        Check_Calibration=True
         # If you want to make sure everything is shipshape, change Check_Calibration to true, and see if all the maths do what you expect
         if Check_Calibration:
-
-            print("Calibration Points in LEGO Coordinates [mm]:")
-            print(LEGO_Calibration_Points)
-            print("")
+            self.calibrationOutput.clear()
+            self.calibrationOutput.appendPlainText("Calibration Points in LEGO Coordinates [mm]:")
+            self.calibrationOutput.appendPlainText(LEGO_Calibration_Points)
+            self.calibrationOutput.appendPlainText("")
 
             # First we do a bulk transform of all the calibration from the points into LEGO coordinates
             # Note that since we are not using homogeneous coordinates we have to tile the translation and tack it on
@@ -103,28 +103,31 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
             Projected_Slicer_CT_Calibration_Points = (self.ret_R*Slicer_CT_Calibration_Points.T) + tile(self.ret_t, (1, n))
             Projected_Slicer_CT_Calibration_Points = Projected_Slicer_CT_Calibration_Points.T
 
-            print("Projected Slicer CT Calibration Points into LEGO Coordinates [mm]:")
-            print(Projected_Slicer_CT_Calibration_Points)
-            print("")
+            self.calibrationOutput.appendPlainText("Projected Slicer CT Calibration Points into LEGO Coordinates [mm]:")
+            self.calibrationOutput.appendPlainText(Projected_Slicer_CT_Calibration_Points)
+            self.calibrationOutput.appendPlainText("")
 
-            C=Slicer_CT_Calibration_Points.copy()#Copy over to make sure we have a matrix of the same size (note that num_joints==num_dof)
-            C[0]=self.ik(Projected_Slicer_CT_Calibration_Points[0,0],Projected_Slicer_CT_Calibration_Points[0,1],Projected_Slicer_CT_Calibration_Points[0,2])
-            C[1]=self.ik(Projected_Slicer_CT_Calibration_Points[1,0],Projected_Slicer_CT_Calibration_Points[1,1],Projected_Slicer_CT_Calibration_Points[1,2])
-            C[2]=self.ik(Projected_Slicer_CT_Calibration_Points[2,0],Projected_Slicer_CT_Calibration_Points[2,1],Projected_Slicer_CT_Calibration_Points[2,2])
-            C[3]=self.ik(Projected_Slicer_CT_Calibration_Points[3,0],Projected_Slicer_CT_Calibration_Points[3,1],Projected_Slicer_CT_Calibration_Points[3,2])
+            test_ik = False
+            if test_ik:
+                C=Slicer_CT_Calibration_Points.copy()#Copy over to make sure we have a matrix of the same size (note that num_joints==num_dof)
+                C[0]=self.ik(Projected_Slicer_CT_Calibration_Points[0,0],Projected_Slicer_CT_Calibration_Points[0,1],Projected_Slicer_CT_Calibration_Points[0,2])
+                C[1]=self.ik(Projected_Slicer_CT_Calibration_Points[1,0],Projected_Slicer_CT_Calibration_Points[1,1],Projected_Slicer_CT_Calibration_Points[1,2])
+                C[2]=self.ik(Projected_Slicer_CT_Calibration_Points[2,0],Projected_Slicer_CT_Calibration_Points[2,1],Projected_Slicer_CT_Calibration_Points[2,2])
+                C[3]=self.ik(Projected_Slicer_CT_Calibration_Points[3,0],Projected_Slicer_CT_Calibration_Points[3,1],Projected_Slicer_CT_Calibration_Points[3,2])
 
-            print("Inverse Kinematics (Batch Transform)")
-            print(C)
-            print("")
+                self.calibrationOutput.appendPlainText("Inverse Kinematics (Batch Transform)")
+                self.calibrationOutput.appendPlainText(C)
+                self.calibrationOutput.appendPlainText("")
 
-            D=Slicer_CT_Calibration_Points.copy()#Copy over to make sure we have a matrix of the same size (note that num_joints==num_dof)
-            D[0]=self.ik_trans(Slicer_CT_Calibration_Points[0,0],Slicer_CT_Calibration_Points[0,1],Slicer_CT_Calibration_Points[0,2])
-            D[1]=self.ik_trans(Slicer_CT_Calibration_Points[1,0],Slicer_CT_Calibration_Points[1,1],Slicer_CT_Calibration_Points[1,2])
-            D[2]=self.ik_trans(Slicer_CT_Calibration_Points[2,0],Slicer_CT_Calibration_Points[2,1],Slicer_CT_Calibration_Points[2,2])
-            D[3]=self.ik_trans(Slicer_CT_Calibration_Points[3,0],Slicer_CT_Calibration_Points[3,1],Slicer_CT_Calibration_Points[3,2])
-            print("Inverse Kinematics (Individual Transform)")
-            print(D)
-            print("")
+                D=Slicer_CT_Calibration_Points.copy()#Copy over to make sure we have a matrix of the same size (note that num_joints==num_dof)
+                D[0]=self.ik_trans(Slicer_CT_Calibration_Points[0,0],Slicer_CT_Calibration_Points[0,1],Slicer_CT_Calibration_Points[0,2])
+                D[1]=self.ik_trans(Slicer_CT_Calibration_Points[1,0],Slicer_CT_Calibration_Points[1,1],Slicer_CT_Calibration_Points[1,2])
+                D[2]=self.ik_trans(Slicer_CT_Calibration_Points[2,0],Slicer_CT_Calibration_Points[2,1],Slicer_CT_Calibration_Points[2,2])
+                D[3]=self.ik_trans(Slicer_CT_Calibration_Points[3,0],Slicer_CT_Calibration_Points[3,1],Slicer_CT_Calibration_Points[3,2])
+                self.calibrationOutput.appendPlainText("Inverse Kinematics (Individual Transform)")
+                self.calibrationOutput.appendPlainText(D)
+                self.calibrationOutput.appendPlainText("")
+                
 
             # Find the error
             err = Projected_Slicer_CT_Calibration_Points - LEGO_Calibration_Points
@@ -132,8 +135,15 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
             err = multiply(err, err)
             err = sum(err)
             rmse = math.sqrt(err/n);
+            
+            self.calibrationOutput.appendPlainText("Rotation:")
+            self.calibrationOutput.appendPlainText(self.ret_R)
+            self.calibrationOutput.appendPlainText("Translation [mm]:")
+            self.calibrationOutput.appendPlainText(self.ret_t)
+            self.calibrationOutput.appendPlainText("")
 
-            print("RMSE:", rmse)
+            self.calibrationOutput.appendPlainText("RMSE [mm]:")
+            self.calibrationOutput.appendPlainText(rmse)
 
     # Forward kinematics: For given joint angles figure out what X,Y,Z we have
     def fk(self,Dst,Azm,Elv):
@@ -238,13 +248,15 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
                 self.calibrationTable.setItem(row, col, item2)
         self.setupFL.addRow("Calibration: ", self.calibrationTable)
         
-        
         self.CalibrateBtn = qt.QToolButton()
         self.CalibrateBtn.setText("Rerun Calibration")
         self.CalibrateBtn.toolTip = "Rerun Calibration with Points from Table"
         self.CalibrateBtn.enabled = True
         self.CalibrateBtn.connect('clicked(bool)', self.calibrate)
         self.setupFL.addRow("Calibrate: ", self.CalibrateBtn)
+        
+        self.calibrationOutput=qt.QPlainTextEdit()
+        self.setupFL.addRow("Results: ", self.calibrationOutput)
 
         #### Button to change the deeto executable location
         #### It is called in ondeetoTB, when deetoTB is selected
@@ -300,9 +312,16 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
         self.updateCalibrationPointsBtn.enabled = True
         self.updateCalibrationPointsBtn.connect('clicked(bool)', self.onupdateCalibrationPointsBtn)
         
+        self.queryRobotPoseBtn = qt.QToolButton()
+        self.queryRobotPoseBtn.setText("Query Robot Pose")
+        self.queryRobotPoseBtn.toolTip = "Sends a request to the Robot for its current joint angles"
+        self.queryRobotPoseBtn.enabled = True
+        self.queryRobotPoseBtn.connect('clicked(bool)', self.onqueryRobotPoseBtn)
+        
         self.buttonsHBL.addWidget(self.deetoTB)
         self.buttonsHBL.addWidget(self.updateListBtn)
         self.buttonsHBL.addWidget(self.updateCalibrationPointsBtn)
+        self.buttonsHBL.addWidget(self.queryRobotPoseBtn)
         self.commandFL.addRow("Send Command", self.buttonsHBL)
 
         #### Configure command - Section
@@ -431,6 +450,21 @@ class LegoWorkshopWidget(ScriptedLoadableModuleWidget):
                 for col in range(0,3):
                     item1 = qt.QTableWidgetItem("%s"%self.points[i][col])
                     self.calibrationTable.setItem(rows-1, col+3, item1)
+    
+    def onqueryRobotPoseBtn(self):
+        """ on LegoWorkshop Tool Box Button Logic """
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        address_port = (self.addressBox.text, int(self.portBox.text))
+        self.sock.connect(address_port)
+        self.sock.sendall("pose,0,0,0")
+        try:
+            data = self.sock.recv(999).decode()
+            #print("<"+data+">")
+            slicer.util.showStatusMessage(data)# <-- This prints to the bottom of the left panel
+
+        except:
+            self.sock.close()
+            print('Connection Lost')
 
 
 
